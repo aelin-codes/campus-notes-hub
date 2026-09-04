@@ -177,7 +177,7 @@ export default function UploadPage() {
           </svg>
           Back to Browse
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-space-grotesk">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-display">
           Upload Study Material
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-zinc-400">

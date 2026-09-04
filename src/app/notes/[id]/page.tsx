@@ -151,7 +151,7 @@ export default function NoteDetailPage() {
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight font-space-grotesk">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight font-display">
             {note.title}
           </h1>
 
