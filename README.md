@@ -5,8 +5,8 @@
 ---
 
 ## 🚀 Live Demo & Repository
-- **Live Deployment:** [Campus Notes Hub on Vercel](https://campus-notes-hub-three.vercel.app) *(or your deployed Vercel link)*
-- **GitHub Repository:** [Campus Notes Hub Repository](https://github.com/your-username/campus-notes-hub)
+- **Live Deployment:** [Campus Notes Hub on Vercel](https://mulearnweb.vercel.app) *(or your deployed Vercel link)*
+- **GitHub Repository:** [Campus Notes Hub Repository](https://github.com/aelin-codes/campus-notes-hub)
 
 ---
 
@@ -89,7 +89,7 @@ on public.notes for insert to anon, authenticated with check (true);
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/your-username/campus-notes-hub.git
+git clone https://github.com/aelin-codes/campus-notes-hub.git
 cd campus-notes-hub
 ```
 
