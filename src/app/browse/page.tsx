@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useTransition, useCallback } from "react";
 import Link from "next/link";
@@ -28,6 +28,9 @@ export default function BrowsePage() {
   const [selectedSemester, setSelectedSemester] = useState("All Semesters");
   const [selectedSubject, setSelectedSubject] = useState("All Subjects");
 
+  // Mobile filter toggle per DESIGN.md Section 3.3
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const [, startTransition] = useTransition();
 
   // Load unique subjects for subject filter
@@ -43,6 +46,7 @@ export default function BrowsePage() {
     }
   }, []);
 
+  // EXACT same query/filter logic per Rule 1
   const fetchFilteredNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -110,80 +114,123 @@ export default function BrowsePage() {
     selectedSemester !== "All Semesters" ||
     selectedSubject !== "All Subjects";
 
+  const activeFiltersCount =
+    (selectedDept !== "All Departments" ? 1 : 0) +
+    (selectedSemester !== "All Semesters" ? 1 : 0) +
+    (selectedSubject !== "All Subjects" ? 1 : 0);
+
   return (
-    <div className="py-2 sm:py-6 md:py-8 space-y-5 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
-            <h1 className="text-xl sm:text-3xl font-extrabold text-zinc-900 tracking-tight">
+    <div className="py-4 sm:py-8 space-y-6">
+      {/* 3.3 Top Bar: Search input (full-width on mobile) + Mobile Filter Toggle + Upload CTA */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold text-[#F4F5F7] tracking-tight">
               Browse Notes
             </h1>
-            {!loading && (
-              <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                {notes.length} {notes.length === 1 ? "resource" : "resources"}
-              </span>
+            <p className="text-xs sm:text-sm text-[#9AA1B2] mt-0.5">
+              Explore university notes, lecture slides, and past papers.
+            </p>
+          </div>
+
+          <Link
+            href="/upload"
+            className="self-start sm:self-auto inline-flex items-center px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-[#7C5CFF] to-[#00E0C6] shadow-md shadow-indigo-950/50 hover:brightness-110 active:scale-[0.97] transition-all"
+          >
+            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Upload Notes
+          </Link>
+        </div>
+
+        {/* Search Bar + Mobile Filter Button */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9AA1B2]">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search title, subject, or description keywords..."
+              className="block w-full pl-10 pr-9 py-2.5 sm:py-3 rounded-xl bg-[#151922] border border-[#262B38] text-[#F4F5F7] placeholder-[#9AA1B2] text-xs sm:text-sm focus:border-[#7C5CFF] focus:outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#9AA1B2] hover:text-[#F4F5F7]"
+                title="Clear search"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             )}
           </div>
-          <p className="mt-1 text-xs sm:text-sm text-zinc-600">
-            Search lecture notes, question banks, and syllabus guides.
-          </p>
-        </div>
 
-        <Link
-          href="/upload"
-          className="self-start sm:self-auto inline-flex items-center px-3.5 sm:px-4 py-2 sm:py-2.5 border border-transparent text-xs sm:text-sm font-semibold rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-        >
-          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Upload Notes
-        </Link>
+          {/* Filter toggle button on mobile per DESIGN.md Section 3.3 */}
+          <button
+            onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+            className={`lg:hidden inline-flex items-center px-3.5 py-2.5 sm:py-3 rounded-xl border text-xs sm:text-sm font-medium transition-colors ${
+              mobileFiltersOpen || activeFiltersCount > 0
+                ? "bg-[#1D2330] border-[#7C5CFF] text-[#F4F5F7]"
+                : "bg-[#151922] border-[#262B38] text-[#9AA1B2] hover:text-[#F4F5F7]"
+            }`}
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-[#7C5CFF] text-white font-bold">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Search & Filter Controls Bar */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-zinc-200 shadow-xs p-3.5 sm:p-5 md:p-6 space-y-3.5 sm:space-y-4">
-        {/* Free-text Search Input */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 sm:pl-3.5 flex items-center pointer-events-none text-zinc-400">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search title, subject, or description..."
-            className="block w-full pl-9 sm:pl-11 pr-9 sm:pr-10 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-zinc-200 bg-zinc-50/50 text-zinc-900 placeholder-zinc-400 text-xs sm:text-sm focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-3 sm:pr-3.5 flex items-center text-zinc-400 hover:text-zinc-600"
-              title="Clear search"
-            >
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+      {/* 3.3 Layout: Left Sidebar (Desktop) + Main Content Area */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* Left Sidebar Filter Panel (Persistent on desktop, collapsible on mobile) */}
+        <aside
+          className={`w-full lg:w-64 shrink-0 rounded-2xl bg-[#151922] border border-[#262B38] p-5 space-y-5 lg:sticky lg:top-24 shadow-xl ${
+            mobileFiltersOpen ? "block" : "hidden lg:block"
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-[#262B38] pb-3">
+            <h2 className="text-sm font-display font-bold text-[#F4F5F7] uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4 text-[#7C5CFF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
-            </button>
-          )}
-        </div>
+              Filter Notes
+            </h2>
+            {isFiltered && (
+              <button
+                onClick={handleResetFilters}
+                className="text-xs text-[#FF6584] hover:underline font-medium"
+              >
+                Reset
+              </button>
+            )}
+          </div>
 
-        {/* Dropdown Filters Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 pt-1">
           {/* Department Filter */}
-          <div>
-            <label className="block text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-[#9AA1B2] uppercase tracking-wider">
               Department
             </label>
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="block w-full rounded-xl border border-zinc-200 bg-white px-2.5 sm:px-3 py-2 sm:py-2.5 text-zinc-900 text-xs sm:text-sm focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
+              className="block w-full rounded-xl bg-[#151922] border border-[#262B38] px-3 py-2 text-[#F4F5F7] text-xs sm:text-sm focus:border-[#7C5CFF] focus:outline-none transition-colors"
             >
               {DEPARTMENTS.map((dept) => (
-                <option key={dept} value={dept}>
+                <option key={dept} value={dept} className="bg-[#151922] text-[#F4F5F7]">
                   {dept}
                 </option>
               ))}
@@ -191,18 +238,20 @@ export default function BrowsePage() {
           </div>
 
           {/* Semester Filter */}
-          <div>
-            <label className="block text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-[#9AA1B2] uppercase tracking-wider">
               Semester
             </label>
             <select
               value={selectedSemester}
               onChange={(e) => setSelectedSemester(e.target.value)}
-              className="block w-full rounded-xl border border-zinc-200 bg-white px-2.5 sm:px-3 py-2 sm:py-2.5 text-zinc-900 text-xs sm:text-sm focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
+              className="block w-full rounded-xl bg-[#151922] border border-[#262B38] px-3 py-2 text-[#F4F5F7] text-xs sm:text-sm focus:border-[#7C5CFF] focus:outline-none transition-colors"
             >
-              <option value="All Semesters">All Semesters</option>
+              <option value="All Semesters" className="bg-[#151922] text-[#F4F5F7]">
+                All Semesters
+              </option>
               {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                <option key={sem} value={sem.toString()}>
+                <option key={sem} value={sem.toString()} className="bg-[#151922] text-[#F4F5F7]">
                   Semester {sem}
                 </option>
               ))}
@@ -210,151 +259,151 @@ export default function BrowsePage() {
           </div>
 
           {/* Subject Filter */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <label className="block text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-[#9AA1B2] uppercase tracking-wider">
               Subject
             </label>
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="block w-full rounded-xl border border-zinc-200 bg-white px-2.5 sm:px-3 py-2 sm:py-2.5 text-zinc-900 text-xs sm:text-sm focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
+              className="block w-full rounded-xl bg-[#151922] border border-[#262B38] px-3 py-2 text-[#F4F5F7] text-xs sm:text-sm focus:border-[#7C5CFF] focus:outline-none transition-colors"
             >
-              <option value="All Subjects">All Subjects</option>
+              <option value="All Subjects" className="bg-[#151922] text-[#F4F5F7]">
+                All Subjects
+              </option>
               {availableSubjects.map((sub) => (
-                <option key={sub} value={sub}>
+                <option key={sub} value={sub} className="bg-[#151922] text-[#F4F5F7]">
                   {sub}
                 </option>
               ))}
             </select>
           </div>
-        </div>
 
-        {/* Active Filter Chips & Clear Action */}
-        {isFiltered && (
-          <div className="pt-2.5 sm:pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-            <div className="flex flex-wrap items-center gap-1.5 text-zinc-600">
-              <span className="font-medium text-zinc-400 text-[11px] sm:text-xs">Active filters:</span>
-              {searchQuery && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-medium text-[11px] sm:text-xs">
-                  &ldquo;{searchQuery}&rdquo;
-                </span>
-              )}
-              {selectedDept !== "All Departments" && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 font-medium text-[11px] sm:text-xs">
-                  Dept: {selectedDept.split(" ")[0]}
-                </span>
-              )}
-              {selectedSemester !== "All Semesters" && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 font-medium text-[11px] sm:text-xs">
-                  Sem {selectedSemester}
-                </span>
-              )}
-              {selectedSubject !== "All Subjects" && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 font-medium text-[11px] sm:text-xs">
-                  {selectedSubject}
-                </span>
-              )}
-            </div>
-
-            <button
-              onClick={handleResetFilters}
-              className="self-start sm:self-auto inline-flex items-center text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline"
-            >
-              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Clear All Filters
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Error state */}
-      {error && (
-        <div className="rounded-xl sm:rounded-2xl bg-red-50 border border-red-200 p-4 sm:p-5 text-xs sm:text-sm text-red-800 flex items-start justify-between">
-          <div className="flex items-start">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mr-2.5 sm:mr-3 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="font-semibold">Query Error</p>
-              <p className="mt-0.5">{error}</p>
-            </div>
-          </div>
-          <button
-            onClick={fetchFilteredNotes}
-            className="ml-3 sm:ml-4 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold transition-colors shrink-0"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Loading Skeletons */}
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 space-y-4 animate-pulse"
-            >
-              <div className="flex justify-between">
-                <div className="h-4 sm:h-5 w-16 bg-zinc-200 rounded-full" />
-                <div className="h-4 sm:h-5 w-12 bg-zinc-200 rounded-full" />
-              </div>
-              <div className="h-5 sm:h-6 w-3/4 bg-zinc-200 rounded-md" />
-              <div className="h-3.5 sm:h-4 w-1/2 bg-zinc-100 rounded-md" />
-              <div className="h-10 sm:h-12 w-full bg-zinc-50 rounded-md" />
-              <div className="pt-3 sm:pt-4 border-t border-zinc-100 flex justify-between">
-                <div className="h-3.5 sm:h-4 w-24 bg-zinc-200 rounded-md" />
-                <div className="h-6 sm:h-7 w-20 bg-zinc-200 rounded-lg" />
+          {/* Active filter summary pill list inside sidebar */}
+          {isFiltered && (
+            <div className="pt-2 border-t border-[#262B38] space-y-2">
+              <span className="text-[11px] font-medium text-[#9AA1B2]">Active filters applied:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedDept !== "All Departments" && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-[#1D2330] text-[#7C5CFF] border border-[#262B38]">
+                    {selectedDept.split(" (")[0]}
+                  </span>
+                )}
+                {selectedSemester !== "All Semesters" && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-[#1D2330] text-[#00E0C6] border border-[#262B38]">
+                    Sem {selectedSemester}
+                  </span>
+                )}
+                {selectedSubject !== "All Subjects" && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-[#1D2330] text-[#FFB547] border border-[#262B38]">
+                    {selectedSubject}
+                  </span>
+                )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          )}
+        </aside>
 
-      {/* Empty State */}
-      {!loading && !error && notes.length === 0 && (
-        <div className="text-center py-12 sm:py-16 bg-white rounded-2xl sm:rounded-3xl border border-zinc-200 px-4 sm:px-6">
-          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-zinc-100 text-zinc-500 flex items-center justify-center mb-3 sm:mb-4">
-            <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-zinc-900">No matching notes found</h3>
-          <p className="mt-1 text-xs sm:text-sm text-zinc-500 max-w-sm mx-auto">
-            {isFiltered
-              ? "Try adjusting your search keywords or loosening the filter criteria."
-              : "No notes have been uploaded yet."}
-          </p>
-          <div className="mt-5 sm:mt-6 flex flex-wrap justify-center gap-2 sm:gap-3">
+        {/* Main Area: Results counter + Notes Grid */}
+        <main className="flex-1 w-full space-y-4">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-[#9AA1B2]">
+            <span>
+              {!loading && (
+                <>
+                  Showing <strong className="text-[#F4F5F7]">{notes.length}</strong> {notes.length === 1 ? "note" : "notes"}
+                </>
+              )}
+            </span>
             {isFiltered && (
               <button
                 onClick={handleResetFilters}
-                className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-zinc-300 text-zinc-700 hover:bg-zinc-50 text-xs sm:text-sm font-semibold transition-colors"
+                className="text-xs text-[#7C5CFF] hover:underline font-medium"
               >
-                Reset Filters
+                Clear all filters
               </button>
             )}
-            <Link
-              href="/upload"
-              className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold transition-colors"
-            >
-              Upload This Note
-            </Link>
           </div>
-        </div>
-      )}
 
-      {/* Grid of Notes */}
-      {!loading && !error && notes.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {notes.map((note) => (
-            <NoteCard key={note.id} note={note} />
-          ))}
-        </div>
-      )}
+          {/* Error State */}
+          {error && (
+            <div className="rounded-xl bg-[#FF6B6B]/10 border border-[#FF6B6B]/30 p-4 text-xs sm:text-sm text-[#FF6B6B] flex items-start justify-between">
+              <p>{error}</p>
+              <button
+                onClick={fetchFilteredNotes}
+                className="px-2.5 py-1 rounded bg-[#FF6B6B]/20 hover:bg-[#FF6B6B]/30 text-xs font-semibold"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Loading Skeletons */}
+          {loading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="bg-[#151922] rounded-2xl border border-[#262B38] p-5 space-y-3 animate-pulse"
+                >
+                  <div className="flex justify-between">
+                    <div className="h-4 w-14 bg-[#1D2330] rounded-full" />
+                    <div className="h-4 w-12 bg-[#1D2330] rounded-full" />
+                  </div>
+                  <div className="h-5 w-3/4 bg-[#1D2330] rounded" />
+                  <div className="h-3.5 w-1/2 bg-[#1D2330] rounded" />
+                  <div className="h-10 w-full bg-[#1D2330] rounded" />
+                  <div className="pt-3 border-t border-[#262B38] flex justify-between">
+                    <div className="h-3 w-20 bg-[#1D2330] rounded" />
+                    <div className="h-6 w-14 bg-[#1D2330] rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 3.3 Empty State: short message + "Clear filters" action */}
+          {!loading && !error && notes.length === 0 && (
+            <div className="text-center py-16 bg-[#151922] rounded-2xl border border-[#262B38] p-6 space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#1D2330] text-[#9AA1B2] flex items-center justify-center mx-auto">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="max-w-sm mx-auto">
+                <h3 className="text-base font-display font-bold text-[#F4F5F7]">No notes match your filters</h3>
+                <p className="text-xs sm:text-sm text-[#9AA1B2] mt-1">
+                  Try loosening your search keywords or resetting the department and semester filters.
+                </p>
+              </div>
+              <div className="pt-2 flex flex-wrap justify-center gap-3">
+                {isFiltered && (
+                  <button
+                    onClick={handleResetFilters}
+                    className="px-4 py-2 rounded-lg border border-[#262B38] bg-[#1D2330] hover:bg-[#262B38] text-xs font-semibold text-[#F4F5F7] transition-colors"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
+                <Link
+                  href="/upload"
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7C5CFF] to-[#00E0C6] text-white text-xs font-semibold hover:brightness-110 transition-all"
+                >
+                  Upload This Note
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* 3.3 Responsive Grid of Note Cards (3 cols desktop, 2 tablet, 1 mobile) */}
+          {!loading && !error && notes.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {notes.map((note) => (
+                <NoteCard key={note.id} note={note} />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
