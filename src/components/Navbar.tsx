@@ -1,10 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 1. Initial check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email });
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.role) setRole(data.role);
+          });
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    });
+
+    // 2. Reactive listener for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email });
+        document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=604800; SameSite=Lax`;
+        const { data } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        if (data?.role) setRole(data.role);
+      } else {
+        setUser(null);
+        setRole(null);
+        document.cookie = "sb-access-token=; path=/; max-age=0";
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    document.cookie = "sb-access-token=; path=/; max-age=0";
+    setUser(null);
+    setRole(null);
+    setMobileMenuOpen(false);
+    router.refresh();
+    router.push("/");
+  };
 
   return (
     <>
@@ -44,15 +103,69 @@ export default function Navbar() {
               >
                 Browse Notes
               </Link>
-              <Link
-                href="/upload"
-                className="inline-flex items-center px-4 py-2 ml-2 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-[#7C5CFF] to-[#00E0C6] shadow-md shadow-indigo-950/50 hover:brightness-110 active:scale-[0.97] transition-all"
-              >
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                Upload Notes
-              </Link>
+
+              {user ? (
+                <>
+                  <Link
+                    href="/upload"
+                    className="inline-flex items-center px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-[#7C5CFF] to-[#00E0C6] shadow-md shadow-indigo-950/50 hover:brightness-110 active:scale-[0.97] transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload Notes
+                  </Link>
+
+                  {/* User Badge with optional Admin tag */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1D2330]/70 border border-[#262B38] text-xs text-zinc-300 ml-1">
+                    <div className="w-5 h-5 rounded-full bg-[#7C5CFF]/20 text-[#7C5CFF] border border-[#7C5CFF]/40 flex items-center justify-center font-bold text-[10px]">
+                      {user.email ? user.email.slice(0, 1).toUpperCase() : "U"}
+                    </div>
+                    <span className="truncate max-w-[120px] font-medium text-zinc-200">
+                      {user.email?.split("@")[0]}
+                    </span>
+                    {role === "admin" && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#7C5CFF]/20 text-[#7C5CFF] border border-[#7C5CFF]/40">
+                        Admin
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleLogout}
+                    className="px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-[#1D2330] rounded-lg transition-colors cursor-pointer"
+                  >
+                    Log Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/upload"
+                    className="inline-flex items-center px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-[#7C5CFF] to-[#00E0C6] shadow-md shadow-indigo-950/50 hover:brightness-110 active:scale-[0.97] transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload Notes
+                  </Link>
+
+                  <div className="flex items-center space-x-1.5 pl-2 border-l border-[#262B38]">
+                    <Link
+                      href="/login"
+                      className="px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white hover:bg-[#1D2330] rounded-lg transition-colors"
+                    >
+                      Log In
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="px-3 py-1.5 text-xs font-semibold text-zinc-200 bg-[#1D2330] hover:bg-[#262B38] border border-[#262B38] rounded-lg transition-colors"
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
+                </>
+              )}
             </nav>
 
             {/* Mobile Actions: Upload CTA + Hamburger Menu */}
@@ -86,7 +199,18 @@ export default function Navbar() {
 
           {/* Mobile Collapsible Nav Menu */}
           {mobileMenuOpen && (
-            <div className="sm:hidden border-t border-[#262B38] py-3 space-y-1">
+            <div className="sm:hidden border-t border-[#262B38] py-3 space-y-2">
+              {user && (
+                <div className="px-3 py-2 rounded-lg bg-[#1D2330]/50 border border-[#262B38] flex items-center justify-between text-xs">
+                  <span className="font-medium text-zinc-200 truncate">{user.email}</span>
+                  {role === "admin" && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#7C5CFF]/20 text-[#7C5CFF] border border-[#7C5CFF]/40">
+                      Admin
+                    </span>
+                  )}
+                </div>
+              )}
+
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
@@ -108,6 +232,32 @@ export default function Navbar() {
               >
                 Upload Material
               </Link>
+
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 text-sm font-medium text-red-400 hover:bg-[#1D2330] rounded-lg transition-colors cursor-pointer"
+                >
+                  Log Out
+                </button>
+              ) : (
+                <div className="pt-2 border-t border-[#262B38] flex gap-2">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2 text-xs font-semibold text-zinc-200 bg-[#1D2330] hover:bg-[#262B38] border border-[#262B38] rounded-lg transition-colors"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2 text-xs font-semibold text-white bg-gradient-to-r from-[#7C5CFF] to-[#00E0C6] rounded-lg transition-all"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>

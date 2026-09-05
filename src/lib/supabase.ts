@@ -1,4 +1,4 @@
-﻿import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
 export interface Note {
   id: string;
@@ -8,8 +8,15 @@ export interface Note {
   semester: number;
   subject: string;
   uploader_name: string;
+  uploader_id?: string | null;
   file_url: string;
   file_type: "pdf" | "image";
+  created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  role: "user" | "admin";
   created_at: string;
 }
 
