@@ -1,11 +1,11 @@
-﻿# Campus Notes Hub 🎓
+# Campus Notes Hub 🎓
 
 > A lightweight, centralized web platform for university students to share, discover, and download lecture notes, previous year question papers, and study resources organized by department, semester, and subject.
 
 ---
 
 ## 🚀 Live Demo & Repository
-- **Live Deployment:** [Campus Notes Hub on Vercel](https://mulearnweb.vercel.app) *(or your deployed Vercel link)*
+- **Live Deployment:** [Campus Notes Hub on Vercel](https://mariancampusnotes.vercel.app) *(or your deployed Vercel link)*
 - **GitHub Repository:** [Campus Notes Hub Repository](https://github.com/aelin-codes/campus-notes-hub)
 
 ---
