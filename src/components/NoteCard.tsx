@@ -1,8 +1,14 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Note } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { Note, supabase } from "@/lib/supabase";
+import { deleteNoteAction } from "@/app/actions/deleteNote";
 
 interface NoteCardProps {
   note: Note;
+  onDeleted?: (id: string) => void;
 }
 
 // Rotate accent colors by department per DESIGN.md Section 1
@@ -23,7 +29,28 @@ function getDepartmentAccent(dept: string): { dot: string; text: string } {
   return { dot: "bg-[#4D96FF]", text: "text-[#4D96FF]" };
 }
 
-export default function NoteCard({ note }: NoteCardProps) {
+export default function NoteCard({ note, onDeleted }: NoteCardProps) {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setCurrentUser({ id: session.user.id });
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.role) setUserRole(data.role);
+          });
+      }
+    });
+  }, []);
+
   const formattedDate = new Date(note.created_at).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -32,6 +59,35 @@ export default function NoteCard({ note }: NoteCardProps) {
 
   const isPdf = note.file_type === "pdf";
   const deptAccent = getDepartmentAccent(note.department);
+
+  // UI check per AUTH.md Section 6: owner OR admin
+  const canDelete =
+    Boolean(currentUser && note.uploader_id && currentUser.id === note.uploader_id) ||
+    userRole === "admin";
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!window.confirm(`Are you sure you want to delete "${note.title}"?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteNoteAction(note.id);
+      if (onDeleted) {
+        onDeleted(note.id);
+      } else {
+        router.refresh();
+      }
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "Failed to delete note.";
+      alert(msg);
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="bg-[#151922] rounded-2xl border border-[#262B38] p-5 hover:border-[#7C5CFF] hover:-translate-y-1 transition-all duration-150 ease-out flex flex-col justify-between group shadow-lg shadow-black/20">
@@ -90,7 +146,7 @@ export default function NoteCard({ note }: NoteCardProps) {
         )}
       </div>
 
-      {/* Footer Row: uploader name (small, --text-secondary) + date, right-aligned download icon button */}
+      {/* Footer Row: uploader name + date + actions */}
       <div className="mt-5 pt-3.5 border-t border-[#262B38] flex items-center justify-between gap-3 text-xs">
         <div className="min-w-0 flex-1">
           <p className="text-[#F4F5F7] font-medium truncate">{note.uploader_name}</p>
@@ -98,6 +154,21 @@ export default function NoteCard({ note }: NoteCardProps) {
         </div>
 
         <div className="flex items-center space-x-1.5 shrink-0">
+          {/* Delete Action Gated in UI per AUTH.md Section 6 and backed by RLS */}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="p-1.5 px-2 rounded-lg bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-200 border border-red-500/30 hover:border-red-500/60 active:scale-[0.97] transition-all inline-flex items-center gap-1 text-xs font-medium cursor-pointer disabled:opacity-50"
+              title="Delete note"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>{isDeleting ? "..." : "Delete"}</span>
+            </button>
+          )}
+
           <Link
             href={`/notes/${note.id}`}
             className="px-2.5 py-1.5 rounded-lg border border-[#262B38] text-[#9AA1B2] hover:text-[#F4F5F7] hover:bg-[#1D2330] text-xs font-medium transition-colors"

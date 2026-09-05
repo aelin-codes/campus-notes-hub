@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase, Note } from "@/lib/supabase";
+import { deleteNoteAction } from "@/app/actions/deleteNote";
 
 const DEPT_COLORS: Record<string, string> = {
   CSE: "#7C5CFF",
@@ -23,11 +24,32 @@ const getDeptColor = (dept: string) => {
 
 export default function NoteDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string;
 
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setCurrentUser({ id: session.user.id });
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.role) setUserRole(data.role);
+          });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -57,6 +79,29 @@ export default function NoteDetailPage() {
 
     fetchNote();
   }, [id]);
+
+  const canDelete =
+    Boolean(currentUser && note?.uploader_id && currentUser.id === note.uploader_id) ||
+    userRole === "admin";
+
+  const handleDelete = async () => {
+    if (!note) return;
+    if (!window.confirm("Are you sure you want to delete this note? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteNoteAction(note.id);
+      router.push("/browse");
+      router.refresh();
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "Failed to delete note.";
+      alert(msg);
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -175,7 +220,21 @@ export default function NoteDetailPage() {
             </p>
           </div>
 
-          <div className="flex items-center space-x-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-red-500/40 bg-red-950/30 text-xs sm:text-sm font-semibold text-red-400 hover:bg-red-900/40 hover:text-red-200 active:scale-[0.97] transition-all cursor-pointer disabled:opacity-50"
+                title="Delete note (Owner or Admin)"
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {isDeleting ? "Deleting..." : "Delete Note"}
+              </button>
+            )}
+
             <a
               href={note.file_url}
               target="_blank"
