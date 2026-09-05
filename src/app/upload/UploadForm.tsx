@@ -34,15 +34,23 @@ export default function UploadForm({ userEmail }: { userEmail?: string }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+
   const processFile = (selected: File) => {
+    if (selected.size > MAX_FILE_SIZE) {
+      setErrorMessage("File size exceeds 20MB limit. Please upload a smaller file.");
+      setFile(null);
+      return;
+    }
+
     const ext = selected.name.split(".").pop()?.toLowerCase();
-    const isPdf = ext === "pdf" || selected.type.includes("pdf");
+    const isPdf = ext === "pdf" && (selected.type.includes("pdf") || !selected.type);
     const isImg =
-      ["png", "jpg", "jpeg", "webp"].includes(ext || "") ||
-      selected.type.startsWith("image/");
+      ["png", "jpg", "jpeg", "webp"].includes(ext || "") &&
+      (selected.type.startsWith("image/") || !selected.type);
 
     if (!isPdf && !isImg) {
-      setErrorMessage("Invalid file type. Please upload a PDF or image (PNG, JPG, WEBP).");
+      setErrorMessage("Invalid file type. Only PDF and images (PNG, JPG, WEBP) are allowed.");
       setFile(null);
       return;
     }

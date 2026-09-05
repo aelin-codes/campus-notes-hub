@@ -8,7 +8,12 @@ import { supabase } from "@/lib/supabase";
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/browse";
+  const rawRedirect = searchParams.get("redirect") || "/browse";
+  // Prevent Open Redirect (CWE-601): strictly ensure relative local path
+  const redirectTo =
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") && !rawRedirect.includes("\\")
+      ? rawRedirect
+      : "/browse";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,7 +54,8 @@ function SignupForm() {
 
       if (data.session) {
         // Since email confirmation is disabled per AUTH.md, user is immediately logged in
-        document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax`;
+        const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+        document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax${isSecure ? "; Secure" : ""}`;
       }
 
       router.push(redirectTo);

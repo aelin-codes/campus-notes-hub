@@ -12,6 +12,11 @@ const supabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllb25nZ3hiZ2VsZXJ2aGtoaHFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MTM0NDYsImV4cCI6MjEwNDA4OTQ0Nn0.0yJnGEdnuE5LaIrgwpCLH3EbNX_RDparMl3l1GJQbtg";
 
 export async function deleteNoteAction(noteId: string) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!noteId || !uuidRegex.test(noteId)) {
+    throw new Error("Invalid note ID format.");
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get("sb-access-token")?.value;
 
@@ -52,6 +57,19 @@ export async function deleteNoteAction(noteId: string) {
   // If RLS blocked the deletion, 0 rows are returned
   if (!data || data.length === 0) {
     throw new Error("Forbidden: You do not have permission to delete this note.");
+  }
+
+  // Best-effort storage cleanup: delete the physical file from the storage bucket
+  if (data[0]?.file_url) {
+    try {
+      const urlParts = data[0].file_url.split("/notes-files/");
+      if (urlParts.length > 1) {
+        const filePath = decodeURIComponent(urlParts[1]);
+        await authClient.storage.from("notes-files").remove([filePath]);
+      }
+    } catch {
+      // Storage cleanup is best-effort; database row deletion has already succeeded
+    }
   }
 
   revalidatePath("/");
