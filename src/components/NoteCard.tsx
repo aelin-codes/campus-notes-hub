@@ -34,6 +34,7 @@ export default function NoteCard({ note, onDeleted }: NoteCardProps) {
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -76,11 +77,11 @@ export default function NoteCard({ note, onDeleted }: NoteCardProps) {
     setIsDeleting(true);
     try {
       await deleteNoteAction(note.id);
+      setIsDeleted(true);
       if (onDeleted) {
         onDeleted(note.id);
-      } else {
-        router.refresh();
       }
+      router.refresh();
     } catch (err: unknown) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Failed to delete note.";
@@ -88,6 +89,10 @@ export default function NoteCard({ note, onDeleted }: NoteCardProps) {
       setIsDeleting(false);
     }
   };
+
+  if (isDeleted) {
+    return null;
+  }
 
   return (
     <div className="bg-[#151922] rounded-2xl border border-[#262B38] p-5 hover:border-[#7C5CFF] hover:-translate-y-1 transition-all duration-150 ease-out flex flex-col justify-between group shadow-lg shadow-black/20">

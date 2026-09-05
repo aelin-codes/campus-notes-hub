@@ -108,6 +108,10 @@ export default function BrowsePage() {
     setSelectedSubject("All Subjects");
   };
 
+  const handleNoteDeleted = (deletedId: string) => {
+    setNotes((prevNotes) => prevNotes.filter((n) => n.id !== deletedId));
+  };
+
   const isFiltered =
     searchQuery.trim() !== "" ||
     selectedDept !== "All Departments" ||
@@ -398,7 +402,7 @@ export default function BrowsePage() {
           {!loading && !error && notes.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {notes.map((note) => (
-                <NoteCard key={note.id} note={note} />
+                <NoteCard key={note.id} note={note} onDeleted={handleNoteDeleted} />
               ))}
             </div>
           )}
